@@ -81,9 +81,13 @@ function run() {
         chokidar.watch('.', {ignored: ['.uploader_config.json', '.gitignore', 'node_modules/**', 'package-lock.json', /(^|[\/\\])\../]}).on('all', (event, path) => {
             if (event == 'change') {
                 console.log('[] Detected file change: ' + chalk.bold(path));
-                let contents = fs.readFileSync(path, {encoding: 'utf-8'});
+                try {
+                    let contents = fs.readFileSync(path, {encoding: 'utf-8'});
 
-                upload(choice.rootFolder + path, contents, choice.url);
+                    upload(choice.rootFolder + path, contents, choice.url);
+                } catch (e) {
+                    console.log('[] Error while uploading file, ignoring');
+                }
             }
         });        
     });
