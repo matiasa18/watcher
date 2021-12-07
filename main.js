@@ -78,7 +78,7 @@ function run() {
 
         console.log(`[] Watching this folder, will upload to: ${chalk.yellow(choice.rootFolder)}`);
 
-        chokidar.watch('.', {ignored: ['.uploader_config.json', '.gitignore', 'node_modules/**', 'package-lock.json', /(^|[\/\\])\../]}).on('all', (event, path) => {
+        chokidar.watch('.', {ignored: ['.uploader_config.json', '.gitignore', 'node_modules/**', '**.xlsx', 'package-lock.json', /(^|[\/\\])\../]}).on('all', (event, path) => {
             if (event == 'change') {
                 console.log('[] Detected file change: ' + chalk.bold(path));
                 try {
