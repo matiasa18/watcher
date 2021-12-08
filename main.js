@@ -19,6 +19,42 @@ const log = (message) => {
     console.log(`${chalk.bold('[' + timestamp + ']')} ` + message);
 }
 
+const setup = () => {
+    inquirer
+    .prompt([
+        {
+            type: 'input',
+            name: 'rootFolder',
+            message: 'Folder to put scripts in (Absolute path, ie: /SuiteScripts/xxxx/)'
+        },
+        {
+            type: 'input',
+            name: 'url',
+            message: 'Url of the Suitelet'
+        },
+        {
+            type: 'input',
+            name: 'id',
+            message: 'ID you will use, you will be prompted for this later'
+        }
+    ])
+    .then(config => {
+        log(`Writing ${chalk.yellow('.uploader_config.json')}...`);
+
+        jsonfile.writeFileSync('./.uploader_config.json', [_.extend(config, {
+            rootFolder: (config.rootFolder.match(/\/$/)? config.rootFolder : config.rootFolder + '/'),
+            url: config.url,
+            id: config.id
+        })]);
+
+        log(`Writing ${chalk.yellow('.gitignore')}...`);
+
+        fs.copyFileSync(dir('files/gitignore.txt'), '.gitignore')
+
+        log(`Done. To start server now please run ${chalk.yellow('watcher run')}.`);
+    });
+}
+
 const run = () => {
     log(`Please select what account you want to use.`);
     
@@ -80,42 +116,6 @@ if (process.argv.length > 2) {
     } 
 } else {
     log(`Please select one of the following options: ${chalk.red('[setup, run]')}`);
-}
-
-const setup = () => {
-    inquirer
-    .prompt([
-        {
-            type: 'input',
-            name: 'rootFolder',
-            message: 'Folder to put scripts in (Absolute path, ie: /SuiteScripts/xxxx/)'
-        },
-        {
-            type: 'input',
-            name: 'url',
-            message: 'Url of the Suitelet'
-        },
-        {
-            type: 'input',
-            name: 'id',
-            message: 'ID you will use, you will be prompted for this later'
-        }
-    ])
-    .then(config => {
-        log(`Writing ${chalk.yellow('.uploader_config.json')}...`);
-
-        jsonfile.writeFileSync('./.uploader_config.json', [_.extend(config, {
-            rootFolder: (config.rootFolder.match(/\/$/)? config.rootFolder : config.rootFolder + '/'),
-            url: config.url,
-            id: config.id
-        })]);
-
-        log(`Writing ${chalk.yellow('.gitignore')}...`);
-
-        fs.copyFileSync(dir('files/gitignore.txt'), '.gitignore')
-
-        log(`Done. To start server now please run ${chalk.yellow('watcher run')}.`);
-    });
 }
 
 const getFileContents = async(path) => {
