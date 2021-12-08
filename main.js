@@ -38,7 +38,7 @@ const run = () => {
 
         log(`Watching this folder, will upload to: ${chalk.yellow(choice.rootFolder)}`);
 
-        chokidar.watch('*.js').on('all', async(event, path) => {
+        chokidar.watch('**/*.js').on('all', async(event, path) => {
             if (event == 'change') {
                 log('Detected file change: ' + chalk.bold(path));
 
