@@ -10,6 +10,65 @@ const chalk = require('chalk')
 const _ = require('underscore')
 const chokidar = require('chokidar')
 const request = require('request');
+const moment = require('moment');
+const {readFile} = require('fs/promises');
+
+const log = (message) => {
+    let timestamp = moment().format('HH:mm');
+
+    console.log(`${chalk.bold('[' + timestamp + ']')} ` + message);
+}
+
+const run = () => {
+    log(`Please select what account you want to use.`);
+    
+    let json = jsonfile.readFileSync('./.uploader_config.json');
+
+    inquirer
+    .prompt([
+        {
+            type: 'list',
+            name: 'id',
+            message: 'Account ID',
+            choices: _.pluck(json, 'id')
+        }
+    ])
+    .then(selection => {
+        let choice = _.findWhere(json, {id: selection.id});
+
+        log(`Watching this folder, will upload to: ${chalk.yellow(choice.rootFolder)}`);
+
+        chokidar.watch('*.js').on('all', async(event, path) => {
+            if (event == 'change') {
+                log('Detected file change: ' + chalk.bold(path));
+
+                uploadFile(path, choice);
+            }
+        });
+    });
+}
+
+const uploadFile = async(path, config, retries) => {
+    let contents = await getFileContents(path);
+    retries = (retries) ? retries : 1;
+
+    if (retries > 5) {
+        log('Retries over 5');
+        return;
+    }
+
+    if (retries > 1) {
+        log('Retrying...');
+    }
+
+    let promise = upload(config.rootFolder + path, contents, config.url);
+
+    promise.then((a, b, c) => {
+        log(`${chalk.green('Success!')}, file uploaded.`);
+    }).catch(async(err) => {
+        await uploadFile(path, config, retries + 1);
+    });
+}
 
 if (process.argv.length > 2) {
     var command = process.argv[2];
@@ -20,10 +79,10 @@ if (process.argv.length > 2) {
         run();
     } 
 } else {
-    console.error(`[] Please select one of the following options: ${chalk.red('[setup, run]')}`);
+    log(`Please select one of the following options: ${chalk.red('[setup, run]')}`);
 }
 
-function setup() {
+const setup = () => {
     inquirer
     .prompt([
         {
@@ -43,7 +102,7 @@ function setup() {
         }
     ])
     .then(config => {
-        console.log(`[] Writing ${chalk.yellow('.uploader_config.json')}...`);
+        log(`Writing ${chalk.yellow('.uploader_config.json')}...`);
 
         jsonfile.writeFileSync('./.uploader_config.json', [_.extend(config, {
             rootFolder: (config.rootFolder.match(/\/$/)? config.rootFolder : config.rootFolder + '/'),
@@ -51,63 +110,41 @@ function setup() {
             id: config.id
         })]);
 
-        console.log(`[] Writing ${chalk.yellow('.gitignore')}...`);
+        log(`Writing ${chalk.yellow('.gitignore')}...`);
 
         fs.copyFileSync(dir('files/gitignore.txt'), '.gitignore')
 
-        console.log(`Done. To start server now please run ${chalk.yellow('watcher run')}.`);
+        log(`Done. To start server now please run ${chalk.yellow('watcher run')}.`);
     });
 }
 
-function run() {
-    console.log(`[] Please select what account you want to use.`);
-    
-    let json = jsonfile.readFileSync('./.uploader_config.json');
+const getFileContents = async(path) => {
+    let result = await readFile(path, 'UTF-8');
 
-    inquirer
-    .prompt([
-        {
-            type: 'list',
-            name: 'id',
-            message: 'Account ID',
-            choices: _.pluck(json, 'id')
-        }
-    ])
-    .then(selection => {
-        let choice = _.findWhere(json, {id: selection.id});
+    return result;
+}
 
-        console.log(`[] Watching this folder, will upload to: ${chalk.yellow(choice.rootFolder)}`);
 
-        chokidar.watch('.', {ignored: ['.uploader_config.json', '.gitignore', 'node_modules/**', '**.xlsx', 'package-lock.json', /(^|[\/\\])\../]}).on('all', (event, path) => {
-            if (event == 'change') {
-                console.log('[] Detected file change: ' + chalk.bold(path));
-                try {
-                    let contents = fs.readFileSync(path, {encoding: 'utf-8'});
-
-                    upload(choice.rootFolder + path, contents, choice.url);
-                } catch (e) {
-                    console.log('[] Error while uploading file, ignoring');
-                }
+const upload = (path, contents, url) => {
+    log('Uploading to: ' + chalk.bold(path));
+    let promise = new Promise((resolve, reject) => {
+        request.post({url: url, formData: {data: contents, path: path}}, (err, httpResponse, body) => {
+            if (err) {
+                log('Upload failed:', err);
+                reject(400);
             }
-        });        
+
+            let response = JSON.parse(httpResponse.body);
+
+            if (response.status == 'error') {
+                log(`${chalk.red('ERROR!')}, NetSuite responded: ${response.exception}.`);
+                reject(400);
+            } else {
+                resolve(200);
+            }
+        })
+          
     });
-    /**/
-}
 
-function upload (path, contents, url) {
-    console.log('[] Uploading to: ' + chalk.bold(path));
-
-    request.post({url: url, formData: {data: contents, path: path}}, function optionalCallback(err, httpResponse, body) {
-        if (err) {
-            return console.error('[] upload failed:', err);
-        }
-
-        let response = JSON.parse(httpResponse.body);
-
-        if (response.status == 'error') {
-            console.log(`[] ${chalk.red('ERROR!')}, NetSuite responded: ${response.exception}.`);
-        } else {
-            console.log(`[] ${chalk.green('Success!')}, file uploaded.`);
-        }
-    });
+    return promise;
 }

@@ -20,11 +20,13 @@
   },
   "homepage": "https://github.com/matiasa18/watcher#readme",
   "dependencies": {
+    "@jsier/retrier": "^1.2.4",
     "chalk": "^2.4.2",
     "chokidar": "^3.0.2",
     "inquirer": "^6.5.0",
     "jsonfile": "^5.0.0",
     "lodash": "^4.17.15",
+    "moment": "^2.29.1",
     "request": "^2.88.0",
     "through2": "^3.0.1",
     "underscore": "^1.13.1"
