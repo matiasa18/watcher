@@ -4,34 +4,34 @@
  */
 define(
 [
-    'N/file'
+  'N/file'
 ],
 (
-    nFile
+  nFile
 ) => {
-    return {
-        onRequest: (context) => {
-            try {
-                let parameters = context.request.parameters;
-                let path = parameters.path;
+  return {
+    post: (context) => {
+      try {
+        let parameters = context.request.parameters;
+        let path = parameters.path;
 
-                let loadedFile = nFile.load({
-                    id: path
-                });
+        let loadedFile = nFile.load({
+          id: path
+        });
 
-                let file = nFile.create({
-                    name: loadedFile.name,
-                    fileType: nFile.Type.PLAINTEXT,
-                    folder: loadedFile.folder,
-                    contents: parameters.data
-                });
+        let file = nFile.create({
+          name: loadedFile.name,
+          fileType: nFile.Type.PLAINTEXT,
+          folder: loadedFile.folder,
+          contents: parameters.data
+        });
 
-                file.save();
+        file.save();
 
-                context.response.write(JSON.stringify({status: 'ok'}));
-            } catch (e) {
-                context.response.write(JSON.stringify({status: 'error', exception: JSON.stringify(e)}));
-            }
-        }
+        context.response.write(JSON.stringify({status: 'ok'}));
+      } catch (e) {
+        context.response.write(JSON.stringify({status: 'error', exception: JSON.stringify(e)}));
+      }
     }
+  }
 });
