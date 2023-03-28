@@ -10,7 +10,7 @@ define(
   nFile
 ) => {
   return {
-    post: (context) => {
+    onRequest: (context) => {
       try {
         let parameters = context.request.parameters;
         let path = parameters.path;
